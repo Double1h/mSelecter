@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>mSelecter</title>
+		<link rel="stylesheet" type="text/css" href="dist/style/mSelecter.css"/>
+		<style type="text/css">
+			#mSelecterBtn {
+				background: gray;
+				color: #008000;
+				padding: 10px 10px;
+			}
+		</style>
+		<script src="dist/js/mobileUtil.js"></script>
+		<script>
+			mobileUtil.fixScreen();
+			var $html = document.querySelector("html"),
+				htmlSize = $html.getAttribute("style");
+			var $viewport = document.querySelector("meta[name=viewport]"),
+				viewport = $viewport.getAttribute("content");
+			var dpr = $html.dataset.dpr,
+				htmlFontSize = $html.style.fontSize.split("px")[0];
+			$viewport.setAttribute("content", 'initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no');
+			$html.setAttribute("style", 'font-size: ' + htmlFontSize / dpr + 'px;');
+		</script>
+	</head>
+	<body>
+		<div id="mSelecterBtn">mSelecterBtn</div>
+		<div id="mSelecterBtn1">mSelecterBtn1</div>
+		<!--<div class="mSelecter">
+			<div class="mSelecterMask"></div>
+			<div class="mSelecterBox">
+				<div class="mSelecterHeader">
+					<p class="close">取消</p>
+					<p class="confirm">确定</p>
+				</div>
+				<div class="mSelecterContent">
+					<ul class="mSelecterItemList">
+						<li class="mSelecterItem">&emsp;</li>
+						<li class="mSelecterItem active">18岁以下</li>
+						<li class="mSelecterItem">19-24</li>
+						<li class="mSelecterItem">25-30</li>
+						<li class="mSelecterItem">30-35</li>
+						<li class="mSelecterItem">35-40</li>
+						<li class="mSelecterItem">40-45</li>
+						<li class="mSelecterItem">45-50</li>
+						<li class="mSelecterItem">&emsp;</li>
+					</ul>
+					<ul class="mSelecterItemList">
+						<li class="mSelecterItem">&emsp;</li>
+						<li class="mSelecterItem active">18岁以下</li>
+						<li class="mSelecterItem">19-24</li>
+						<li class="mSelecterItem">25-30</li>
+						<li class="mSelecterItem">30-35</li>
+						<li class="mSelecterItem">35-40</li>
+						<li class="mSelecterItem">40-45</li>
+						<li class="mSelecterItem">45-50</li>
+						<li class="mSelecterItem">&emsp;</li>
+					</ul>
+					<div class="mSelectShowBox"></div>
+				</div>
+			</div>
+		</div>-->
+		<script src="https://cdn.bootcss.com/zepto/1.2.0/zepto.min.js"></script>
+		<script src="https://cdn.bootcss.com/touchjs/0.2.14/touch.min.js"></script>
+		<script src="dist/js/mSelecter.js"></script>
+		<script type="text/javascript">
+			var mySelecter = new mSelecter({
+				el: "#mSelecterBtn",
+				transition: true,
+				data: [[
+					{id: 1, value: "hahhahah1"},
+					{id: 2, value: "hahhahah2"},
+					{id: 3, value: "hahhahah3"},
+					{id: 4, value: "hahhahah4"},
+					{id: 5, value: "hahhahah5"},
+					{id: 6, value: "hahhahah6"},
+				],
+				[
+					{id: 1, value: "hahhahah1"},
+					{id: 2, value: "hahhahah2"},
+					{id: 3, value: "hahhahah3"},
+					{id: 4, value: "hahhahah4"},
+					{id: 5, value: "hahhahah5"},
+					{id: 6, value: "hahhahah6"},
+				]],
+				defaultSelect: [0, 0],
+				callback: function(data) {
+					console.log(data)
+				},
+			});
+		</script>
+	</body>
+</html>
