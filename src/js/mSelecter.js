@@ -29,8 +29,7 @@ var mSelecter = function (option){
 		transition: false,
 		// 确定之后的回调
 		callback: null,
-		// 传入的数据
-		data: [],
+		defaultSelect: [0],
 		// 是否联动
 		relation: false,
 	};
@@ -61,12 +60,47 @@ mSelecter.prototype = {
 	
 	initOption: function() {
 		this.option = Object.assign(this.defaultOption, this.option || {});
+		// 补足默认选项
+		this.option.defaultSelect = this.getSelected();
+	},
+	
+	getSelected: function () {
+		var selected = this.option.defaultSelect,
+			lastChild = null;
+		
+		// 第一级的处理特殊一点
+		if (typeof this.option.data[selected[0]] == 'undefined') {
+			lastChild = this.option.data[0];
+			selected[0] = 0;
+		} else {
+			lastChild = this.option.data[selected[0]];
+		}
+		
+		// 先遍历selected， 如果selected选中的符合数据，则用selected
+		// 否则， 删掉第一个不符合之后的所有默认选中
+		for(var i = 1, length = selected.length; i < length; i++) {
+			if (typeof lastChild.child !== 'undefined' && typeof lastChild.child[selected[i]] !== 'undefined') {
+				lastChild = lastChild.child[selected[i]];
+			} else {
+				selected.length = i;
+				break;
+			}
+		}
+		
+		// 除了默认选中,后面还有几列的,补上第一个元素为默认选中
+		while (typeof lastChild != 'undefined' && typeof lastChild.child != 'undefined') {
+			selected.push(0);
+			lastChild = lastChild.child[0];
+		}
+		return selected;
 	},
 	
 	initLayer: function() {
 		// 获取scrollList
-		var listHtml = '';
-		this.option.data.forEach((item, index) => {
+		var listHtml = '',
+			initData = this.getInitData(this.option.defaultSelect);
+			
+		initData.forEach((item, index) => {
 			listHtml += `<ul class="mSelecterItemList" data-index="${index}">`;
 			
 			item.forEach((item) => {
@@ -96,6 +130,47 @@ mSelecter.prototype = {
 		$('body').append(el);
 	},
 	
+	updateLayer: function() {
+		var listHtml = '',
+			initData = this.getInitData(this.currentItem);
+			
+		initData.forEach((item, index) => {
+			listHtml += `<ul class="mSelecterItemList" data-index="${index}">`;
+			
+			item.forEach((item) => {
+				listHtml +=	`<li class="mSelecterItem">${item.value}</li>`;
+			});
+			
+			listHtml += `</ul>`;
+		});
+		
+		listHtml += '<div class="mSelectShowBox"></div>';
+		
+		this.wrap.find('.mSelecterContent').html(listHtml);
+	},
+	
+	getInitData: function(selected) {
+		var result = [],
+			tempResult = [],
+			data = this.option.data;
+		
+		for(var i = 0, length = selected.length; i < length; i++) {
+			tempResult = [];
+			data = i === 0 ? data : data[selected[i-1]].child;
+			
+			data.forEach((item, index) => {
+				tempResult.push({
+					value: item.value,
+					index: index,
+				});
+			});
+			
+			result.push(tempResult);
+		}
+		
+		return result;
+	},
+	
 	registerMSelecter: function() {
 		this.wrap.hide();
 		this.el.on("click", ()=> {
@@ -123,7 +198,6 @@ mSelecter.prototype = {
 	},
 	
 	initSelect: function(result) {
-		
 		this.scrollList.forEach((item, index) => {
 			if (result[index] == null) {
 				result[index] = 0;
@@ -142,24 +216,23 @@ mSelecter.prototype = {
 			this.wrap.show();
 		});
 		
-		this.scrollList.on("touchstart", (event) => {
+		this.wrap.find('.mSelecterContent').on("touchstart", ".mSelecterItemList", (event) => {
 			var index = event.currentTarget.dataset.index;
 		    this.pointY = event.touches[0].pageY;
-		    this.currentScrollList = this.scrollList.eq(index);
+		    this.currentScrollList = this.wrap.find('.mSelecterItemList').eq(index);
 		    this.currentScrollListIndex = index;
 		    
 		    this.option.transition && this.initTransition();
 			return false;
 		});
 		
-		this.scrollList.on("touchmove", (event) => {
+		this.wrap.find('.mSelecterContent').on("touchmove", ".mSelecterItemList", (event) => {
 			var translateY = this.getTranslateY(event.touches[0].pageY);
-			
 			this.touchFeedback(translateY, "touchmove");
 			return false;
 		});
 		
-		this.scrollList.on("touchend", (event) => {
+		this.wrap.find('.mSelecterContent').on("touchend", ".mSelecterItemList", (event) => {
 			this.touchFeedback(this.fixedTranslateY(), "touchend");
 			return false;
 		});
@@ -219,12 +292,50 @@ mSelecter.prototype = {
 	touchFeedback: function(translateY, eventType) {
 		this.setTranslateY(translateY);
 		// 设置当前滚动列表被选中的项的index
-		this.currentItem[this.currentScrollListIndex] = Math.round(-this.currentTranslateY[this.currentScrollListIndex] / this.itemHeight);
-		this.updateUi();
+		this.currentItem[this.currentScrollListIndex] = parseInt(Math.round(-this.currentTranslateY[this.currentScrollListIndex] / this.itemHeight));
+		// 结束时要重置其后的选项
+		if (eventType === 'touchend') {
+			this.updateCurrentItem(this.currentScrollListIndex);
+			this.updateLayer();
+			this.updateUi();
+		}
+		this.updateUi2();
 	},
 	
+	// 更新选中
+	updateCurrentItem: function(index) {
+		var currentItem = this.currentItem,
+			index = parseInt(index),
+			lastChild = this.option.data[currentItem[0]];
+		
+		// 获取当前最后一列值
+		currentItem.length = index + 1;
+		for(var i = 1; i <= index; i++) {
+			lastChild = lastChild.child[currentItem[i]];
+		}
+		
+		// 补充其后的值
+		while(lastChild && lastChild.child && lastChild.child[0]) {
+			lastChild = lastChild.child[0];
+			currentItem[++index] = 0;
+		}
+	},
 	// 更新当前列的active
 	updateUi: function() {
+		this.wrap.find('.mSelectShowBox').css('top', this.itemHeight * (this.option.showItem - 1 ) / 2);
+		this.wrap.find('.mSelecterItem').removeClass('active');
+		this.wrap.find('.mSelecterItemList').css({
+			'padding': this.itemHeight * Math.floor(this.option.showItem / 2) + "px 0",
+		});
+		this.currentItem.forEach((item, index) => {
+			this.wrap.find('.mSelecterItemList').eq(index).find('.mSelecterItem').eq(item).addClass('active');
+			this.wrap.find('.mSelecterItemList').eq(index).css({
+				'transform': 'translateY(' + -(this.itemHeight * item) + 'px)',
+			})
+		});
+	},
+	
+	updateUi2: function() {
 		this.currentScrollList.find('.mSelecterItem').removeClass('active');
 		this.currentScrollList.find('.mSelecterItem').eq(this.currentItem[this.currentScrollListIndex]).addClass('active');
 	},
@@ -232,15 +343,15 @@ mSelecter.prototype = {
 	// 给回调函数传参
 	getResult: function() {
 		let result = [],
-			tempResultItem = null;
+			currentItem = this.currentItem,
+			lastChild = this.option.data[currentItem[0]];
+		result.push(lastChild);
 			
-		this.scrollList.forEach((item, index) => {
-			// 当前列被选中项的index
-			var selectedItem = this.currentItem[index],
-				tempResultItem = selectedItem ? this.option.data[index][selectedItem] : this.option.data[index][0];
-			
-			result.push(tempResultItem);
-		});
+		// 获取当前最后一列值
+		for(var i = 1; i < currentItem.length; i++) {
+			lastChild = lastChild.child[currentItem[i]];
+			result.push(lastChild);
+		}
 		
 		return result;
 	},
