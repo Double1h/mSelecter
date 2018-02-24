@@ -26,6 +26,7 @@
 	</head>
 	<body>
 		<div id="mSelecterBtn">mSelecterBtn</div>
+		<div id="mSelecterBtn1">mSelecterBtn</div>
 		<!--<div id="mSelecterBtn1">mSelecterBtn1</div>-->
 		<!--<div class="mSelecter">
 			<div class="mSelecterMask"></div>
@@ -35,28 +36,30 @@
 					<p class="confirm">确定</p>
 				</div>
 				<div class="mSelecterContent">
-					<ul class="mSelecterItemList">
-						<li class="mSelecterItem">&emsp;</li>
-						<li class="mSelecterItem active">18岁以下</li>
-						<li class="mSelecterItem">19-24</li>
-						<li class="mSelecterItem">25-30</li>
-						<li class="mSelecterItem">30-35</li>
-						<li class="mSelecterItem">35-40</li>
-						<li class="mSelecterItem">40-45</li>
-						<li class="mSelecterItem">45-50</li>
-						<li class="mSelecterItem">&emsp;</li>
-					</ul>
-					<ul class="mSelecterItemList">
-						<li class="mSelecterItem">&emsp;</li>
-						<li class="mSelecterItem active">18岁以下</li>
-						<li class="mSelecterItem">19-24</li>
-						<li class="mSelecterItem">25-30</li>
-						<li class="mSelecterItem">30-35</li>
-						<li class="mSelecterItem">35-40</li>
-						<li class="mSelecterItem">40-45</li>
-						<li class="mSelecterItem">45-50</li>
-						<li class="mSelecterItem">&emsp;</li>
-					</ul>
+					<div class="mSelecterList">
+						<ul class="mSelecterItemList">
+							<li class="mSelecterItem">&emsp;</li>
+							<li class="mSelecterItem active">18岁以下</li>
+							<li class="mSelecterItem">19-24</li>
+							<li class="mSelecterItem">25-30</li>
+							<li class="mSelecterItem">30-35</li>
+							<li class="mSelecterItem">35-40</li>
+							<li class="mSelecterItem">40-45</li>
+							<li class="mSelecterItem">45-50</li>
+							<li class="mSelecterItem">&emsp;</li>
+						</ul>
+						<ul class="mSelecterItemList">
+							<li class="mSelecterItem">&emsp;</li>
+							<li class="mSelecterItem active">18岁以下</li>
+							<li class="mSelecterItem">19-24</li>
+							<li class="mSelecterItem">25-30</li>
+							<li class="mSelecterItem">30-35</li>
+							<li class="mSelecterItem">35-40</li>
+							<li class="mSelecterItem">40-45</li>
+							<li class="mSelecterItem">45-50</li>
+							<li class="mSelecterItem">&emsp;</li>
+						</ul>
+					</div>
 					<div class="mSelectShowBox"></div>
 				</div>
 			</div>
@@ -68,6 +71,7 @@
 			var mySelecter = new mSelecter({
 				el: "#mSelecterBtn",
 				transition: true,
+				relation: true,
 				data: [
 				{
 					value: 'Olink1',
@@ -103,30 +107,31 @@
 				},
 			});
 			
-//			var mySelecter1 = new mSelecter({
-//				el: "#mSelecterBtn1",
-//				transition: true,
-//				data: [[
-//					{id: 1, value: "hahhahah1"},
-//					{id: 2, value: "hahhahah2"},
-//					{id: 3, value: "hahhahah3"},
-//					{id: 4, value: "hahhahah4"},
-//					{id: 5, value: "hahhahah5"},
-//					{id: 6, value: "hahhahah6"},
-//				],
-//				[
-//					{id: 1, value: "hahhahah1"},
-//					{id: 2, value: "hahhahah2"},
-//					{id: 3, value: "hahhahah3"},
-//					{id: 4, value: "hahhahah4"},
-//					{id: 5, value: "hahhahah5"},
-//					{id: 6, value: "hahhahah6"},
-//				]],
-//				defaultSelect: [0, 0],
-//				callback: function(data) {
-//					console.log(data)
-//				},
-//			});
+			var mySelecter1 = new mSelecter({
+				el: "#mSelecterBtn1",
+				transition: true,
+				relation: false,
+				data: [[
+					{id: 1, value: "hahhahah1"},
+					{id: 2, value: "hahhahah2"},
+					{id: 3, value: "hahhahah3"},
+					{id: 4, value: "hahhahah4"},
+					{id: 5, value: "hahhahah5"},
+					{id: 6, value: "hahhahah6"},
+				],
+				[
+					{id: 1, value: "hahhahah1"},
+					{id: 2, value: "hahhahah2"},
+					{id: 3, value: "hahhahah3"},
+					{id: 4, value: "hahhahah4"},
+					{id: 5, value: "hahhahah5"},
+					{id: 6, value: "hahhahah6"},
+				]],
+				defaultSelect: [0, 1],
+				callback: function(data) {
+					console.log(data)
+				},
+			});
 		</script>
 	</body>
 </html>

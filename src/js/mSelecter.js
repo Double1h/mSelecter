@@ -1,7 +1,8 @@
 var mSelecter = function (option){
-	if(!option.el || typeof option.el !== 'string') {
+	if (!option.el || typeof option.el !== 'string') {
 		throw 'el must be string';
 	}
+	
 	this.pointY = 0;
 	// 每个scrollList的当前translateY
 	this.currentTranslateY = [];
@@ -70,6 +71,10 @@ mSelecter.prototype = {
 	
 	// 处理传进来的默认选项
 	getSelected: function () {
+		return this.option.relation ? this.getRelationSelected() : this.getNotRelationSelected();
+	},
+	
+	getRelationSelected: function() {
 		var selected = this.option.defaultSelect,
 			lastChild = null;
 		
@@ -84,7 +89,8 @@ mSelecter.prototype = {
 		// 先遍历selected， 如果selected选中的符合数据，则用selected
 		// 否则， 删掉第一个不符合之后的所有默认选中
 		for(var i = 1, length = selected.length; i < length; i++) {
-			if (typeof lastChild.child !== 'undefined' && typeof lastChild.child[selected[i]] !== 'undefined') {
+			if (typeof lastChild.child !== 'undefined' && 
+			    typeof lastChild.child[selected[i]] !== 'undefined') {
 				lastChild = lastChild.child[selected[i]];
 			} else {
 				selected.length = i;
@@ -93,10 +99,24 @@ mSelecter.prototype = {
 		}
 		
 		// 除了默认选中,后面还有几列的,补上第一个元素为默认选中
-		while (typeof lastChild != 'undefined' && typeof lastChild.child != 'undefined') {
+		while (typeof lastChild != 'undefined' && 
+			   typeof lastChild.child != 'undefined') {
 			selected.push(0);
 			lastChild = lastChild.child[0];
 		}
+		return selected;
+	},
+	
+	getNotRelationSelected: function() {
+		var selected = this.option.defaultSelect,
+			data = this.option.data;
+		for (var i = 0, length = data.length; i < length; i++) {
+			var item = data[i];
+			if(typeof item[selected[i]] == 'undefined') {
+				selected[i] = 0;
+			}
+		}
+		selected.length = length;
 		return selected;
 	},
 	
@@ -145,11 +165,11 @@ mSelecter.prototype = {
 	updateScrollListHtml: function(fromIndex) {
 		var from = typeof fromIndex == 'undefined' ? 0 : parseInt(fromIndex) + 1,
 			// 初始化页面上显示的数据 (整理成二维数组， 每一列的数据是一个数组项)
-			initData = this.getInitData(),
+			initData = this.option.relation ? this.getInitData() : this.option.data,
 			listHtml = '';
 			
 		this.scrollListHtml.length = from;
-		for(var i = from, length = initData.length; i < length; i++) {
+		for (var i = from, length = initData.length; i < length; i++) {
 			var item = initData[i];
 			listHtml = `<ul class="mSelecterItemList" data-index="${i}">`;
 			
@@ -169,7 +189,7 @@ mSelecter.prototype = {
 			data = this.option.data,
 			selected = this.currentItem || [];
 		
-		for(var i = 0, length = selected.length; i < length; i++) {
+		for (var i = 0, length = selected.length; i < length; i++) {
 			tempResult = [];
 			data = i === 0 ? data : data[selected[i-1]].child;
 			
@@ -188,7 +208,7 @@ mSelecter.prototype = {
 	
 	registerMSelecter: function() {
 		this.wrap.hide();
-		this.el.on("click", ()=> {
+		this.el.on("click", () => {
 			this.wrap.show();
 			this.initUi();
 			this.initEvents();
@@ -304,7 +324,7 @@ mSelecter.prototype = {
 	},
 	
 	setTranslateY: function(translateY, el) {
-		if(typeof el == 'undefined') {
+		if (typeof el == 'undefined') {
 			el = this.currentScrollList;
 		}
 		el.css({
@@ -317,8 +337,8 @@ mSelecter.prototype = {
 		this.setTranslateY(translateY);
 		// 设置当前滚动列表被选中的项的index
 		this.currentItem[this.currentScrollListIndex] = parseInt(Math.round(-this.currentTranslateY[this.currentScrollListIndex] / this.itemHeight));
-		// 结束时 && 当前滚动列的值改变了，要重置其后的选项
-		if (eventType === 'touchend' && this.currentItem[this.currentScrollListIndex] != this.beforeScrollCurrentItemIndex) {
+		// 联动 && 结束时 && 当前滚动列的值改变了，要重置其后的选项
+		if (this.option.relation && eventType === 'touchend' && this.currentItem[this.currentScrollListIndex] != this.beforeScrollCurrentItemIndex) {
 			this.updateCurrentItem(this.currentScrollListIndex);
 			this.updateLayer(this.currentScrollListIndex);
 			this.updateTouchEndUi(this.currentScrollListIndex);
@@ -335,12 +355,12 @@ mSelecter.prototype = {
 		
 		// 获取当前最后一列值
 		currentItem.length = index + 1;
-		for(var i = 1; i <= index; i++) {
+		for (var i = 1; i <= index; i++) {
 			lastChild = lastChild.child[currentItem[i]];
 		}
 		
 		// 补充其后的值
-		while(lastChild && lastChild.child && lastChild.child[0]) {
+		while (lastChild && lastChild.child && lastChild.child[0]) {
 			lastChild = lastChild.child[0];
 			currentItem[++index] = 0;
 		}
@@ -376,13 +396,17 @@ mSelecter.prototype = {
 	
 	// 给回调函数传参
 	getResult: function() {
-		let result = [],
+		return this.option.relation ? this.getRelationResult() : this.getNotRelationResult();	
+	},
+	
+	getRelationResult: function() {
+		var result = [],
 			currentItem = this.currentItem,
 			lastChild = this.option.data[currentItem[0]];
 		result.push(lastChild);
 			
 		// 获取当前最后一列值
-		for(var i = 1; i < currentItem.length; i++) {
+		for (var i = 1; i < currentItem.length; i++) {
 			lastChild = lastChild.child[currentItem[i]];
 			result.push(lastChild);
 		}
@@ -390,11 +414,21 @@ mSelecter.prototype = {
 		return result;
 	},
 	
+	getNotRelationResult: function() {
+		var result = [],
+			currentItem = this.currentItem;
+			
+		for (var i = 0; i < currentItem.length; i++) {
+			result.push(this.option.data[i][currentItem[i]]);
+		}
+		return result;
+	},
+	
 	// 获取数组中，属性值等于给定值的下标
 	getArrayAttrIndex: function(obj) {
 		var {attr, value, array} = obj;
-		for(var i = 0, length = array.length; i < length; i++) {
-			if(array[i][attr] === value) {
+		for (var i = 0, length = array.length; i < length; i++) {
+			if (array[i][attr] === value) {
 				return i;
 			}
 		}
@@ -419,5 +453,4 @@ mSelecter.prototype = {
 
 
 // 后期优化
-// 兼容不联调
 // 改成类 es6

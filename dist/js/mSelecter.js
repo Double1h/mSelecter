@@ -4,6 +4,7 @@ var mSelecter = function mSelecter(option) {
 	if (!option.el || typeof option.el !== 'string') {
 		throw 'el must be string';
 	}
+
 	this.pointY = 0;
 	// 每个scrollList的当前translateY
 	this.currentTranslateY = [];
@@ -72,6 +73,10 @@ mSelecter.prototype = {
 
 	// 处理传进来的默认选项
 	getSelected: function getSelected() {
+		return this.option.relation ? this.getRelationSelected() : this.getNotRelationSelected();
+	},
+
+	getRelationSelected: function getRelationSelected() {
 		var selected = this.option.defaultSelect,
 		    lastChild = null;
 
@@ -99,6 +104,19 @@ mSelecter.prototype = {
 			selected.push(0);
 			lastChild = lastChild.child[0];
 		}
+		return selected;
+	},
+
+	getNotRelationSelected: function getNotRelationSelected() {
+		var selected = this.option.defaultSelect,
+		    data = this.option.data;
+		for (var i = 0, length = data.length; i < length; i++) {
+			var item = data[i];
+			if (typeof item[selected[i]] == 'undefined') {
+				selected[i] = 0;
+			}
+		}
+		selected.length = length;
 		return selected;
 	},
 
@@ -134,7 +152,7 @@ mSelecter.prototype = {
 		var from = typeof fromIndex == 'undefined' ? 0 : parseInt(fromIndex) + 1,
 
 		// 初始化页面上显示的数据 (整理成二维数组， 每一列的数据是一个数组项)
-		initData = this.getInitData(),
+		initData = this.option.relation ? this.getInitData() : this.option.data,
 		    listHtml = '';
 
 		this.scrollListHtml.length = from;
@@ -314,8 +332,8 @@ mSelecter.prototype = {
 		this.setTranslateY(translateY);
 		// 设置当前滚动列表被选中的项的index
 		this.currentItem[this.currentScrollListIndex] = parseInt(Math.round(-this.currentTranslateY[this.currentScrollListIndex] / this.itemHeight));
-		// 结束时 && 当前滚动列的值改变了，要重置其后的选项
-		if (eventType === 'touchend' && this.currentItem[this.currentScrollListIndex] != this.beforeScrollCurrentItemIndex) {
+		// 联动 && 结束时 && 当前滚动列的值改变了，要重置其后的选项
+		if (this.option.relation && eventType === 'touchend' && this.currentItem[this.currentScrollListIndex] != this.beforeScrollCurrentItemIndex) {
 			this.updateCurrentItem(this.currentScrollListIndex);
 			this.updateLayer(this.currentScrollListIndex);
 			this.updateTouchEndUi(this.currentScrollListIndex);
@@ -372,6 +390,10 @@ mSelecter.prototype = {
 
 	// 给回调函数传参
 	getResult: function getResult() {
+		return this.option.relation ? this.getRelationResult() : this.getNotRelationResult();
+	},
+
+	getRelationResult: function getRelationResult() {
 		var result = [],
 		    currentItem = this.currentItem,
 		    lastChild = this.option.data[currentItem[0]];
@@ -383,6 +405,16 @@ mSelecter.prototype = {
 			result.push(lastChild);
 		}
 
+		return result;
+	},
+
+	getNotRelationResult: function getNotRelationResult() {
+		var result = [],
+		    currentItem = this.currentItem;
+
+		for (var i = 0; i < currentItem.length; i++) {
+			result.push(this.option.data[i][currentItem[i]]);
+		}
 		return result;
 	},
 
@@ -417,5 +449,4 @@ mSelecter.prototype = {
 };
 
 // 后期优化
-// 兼容不联调
 // 改成类 es6
