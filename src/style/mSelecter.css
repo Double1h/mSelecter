@@ -44,8 +44,6 @@ li {
 .mSelecterContent {
   overflow: hidden;
   position: relative;
-  display: flex;
-  flex-wrap: nowrap;
 }
 .mSelecterContent .mSelectShowBox {
   position: absolute;
@@ -59,6 +57,9 @@ li {
   z-index: 1;
   height: 264px;
   flex: 1;
+  float: left;
+  width: 70%;
+  transition: width .3s;
 }
 .mSelecterItem {
   text-align: center;

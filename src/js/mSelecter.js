@@ -11,9 +11,13 @@ var mSelecter = function (option){
 	this.currentScrollList = null;
 	// 当前滚动列表的Index
 	this.currentScrollListIndex = null;
+	// 当前滚动列表移动前选中项的Index
+	this.beforeScrollCurrentItemIndex = null;
 
 	// 滚动列表们
 	this.scrollList = null;
+	// 滚动列表对应的Html（缓存起来）
+	this.scrollListHtml = [];
 	this.confirm = null;
 	this.close = null;
 	// 包含整个插件的元素
@@ -60,10 +64,11 @@ mSelecter.prototype = {
 	
 	initOption: function() {
 		this.option = Object.assign(this.defaultOption, this.option || {});
-		// 补足默认选项
-		this.option.defaultSelect = this.getSelected();
+		// 处理传进来的默认选项, 设置当前选项
+		this.currentItem = this.getSelected();
 	},
 	
+	// 处理传进来的默认选项
 	getSelected: function () {
 		var selected = this.option.defaultSelect,
 			lastChild = null;
@@ -97,18 +102,10 @@ mSelecter.prototype = {
 	
 	initLayer: function() {
 		// 获取scrollList
-		var listHtml = '',
-			initData = this.getInitData(this.option.defaultSelect);
-			
-		initData.forEach((item, index) => {
-			listHtml += `<ul class="mSelecterItemList" data-index="${index}">`;
-			
-			item.forEach((item) => {
-				listHtml +=	`<li class="mSelecterItem">${item.value}</li>`;
-			});
-			
-			listHtml += `</ul>`;
-		});
+		var listHtml = '';
+		
+		this.updateScrollListHtml();
+		listHtml = this.scrollListHtml.join('');
 		
 		// 整个选择器盒子
 		var html = `<div class="mSelecter" id="mSelecter-${mSelecter.prototype.count}">
@@ -119,7 +116,9 @@ mSelecter.prototype = {
 								<p class="confirm">确定</p>
 							</div>
 							<div class="mSelecterContent">
-								${listHtml}
+								<div class="mSelecterList">
+									${listHtml}
+								</div>
 								<div class="mSelectShowBox"></div>
 							</div>
 						</div>
@@ -130,29 +129,45 @@ mSelecter.prototype = {
 		$('body').append(el);
 	},
 	
-	updateLayer: function() {
+	updateLayer: function(fromIndex) {
 		var listHtml = '',
-			initData = this.getInitData(this.currentItem);
+			originScrollListHtml = this.scrollListHtml.join('');
 			
-		initData.forEach((item, index) => {
-			listHtml += `<ul class="mSelecterItemList" data-index="${index}">`;
+		this.updateScrollListHtml(fromIndex);
+		listHtml = this.scrollListHtml.join('');
+		
+		// 相同的话 不操作dom
+		if (originScrollListHtml === listHtml) return ;
+		this.wrap.find('.mSelecterList').html(listHtml);
+	},
+	
+	// 更新scrollList的html
+	updateScrollListHtml: function(fromIndex) {
+		var from = typeof fromIndex == 'undefined' ? 0 : parseInt(fromIndex) + 1,
+			// 初始化页面上显示的数据 (整理成二维数组， 每一列的数据是一个数组项)
+			initData = this.getInitData(),
+			listHtml = '';
+			
+		this.scrollListHtml.length = from;
+		for(var i = from, length = initData.length; i < length; i++) {
+			var item = initData[i];
+			listHtml = `<ul class="mSelecterItemList" data-index="${i}">`;
 			
 			item.forEach((item) => {
 				listHtml +=	`<li class="mSelecterItem">${item.value}</li>`;
 			});
 			
 			listHtml += `</ul>`;
-		});
-		
-		listHtml += '<div class="mSelectShowBox"></div>';
-		
-		this.wrap.find('.mSelecterContent').html(listHtml);
+			this.scrollListHtml.push(listHtml);
+		}
 	},
 	
-	getInitData: function(selected) {
+	// 根据选中项提取每一列的数据，整理成二维数组
+	getInitData: function() {
 		var result = [],
 			tempResult = [],
-			data = this.option.data;
+			data = this.option.data,
+			selected = this.currentItem || [];
 		
 		for(var i = 0, length = selected.length; i < length; i++) {
 			tempResult = [];
@@ -185,16 +200,17 @@ mSelecter.prototype = {
 			
 		// 获取每个item的高度
 		this.itemHeight = this.wrap.find('.mSelecterItem').height();
-		// 给滚动列表设置高度
+		// 给滚动列表的外层盒子设置高度
 		this.wrap.find('.mSelecterContent').height(this.itemHeight * showItem);
-		// 每个滚动列加padding，为了滚动的效果
+		// 每个滚动列加padding（辅助滚动，使能选中最顶 || 最底元素）
 		this.scrollList.css({
 			'padding': this.itemHeight * Math.floor(showItem / 2) + "px 0",
+			'width': (100 / this.scrollList.length).toFixed(2) + "%"
 		});
-		// 选中框设置
+		// 选中框位置设置
 		this.wrap.find('.mSelectShowBox').css('top', this.itemHeight * (showItem - 1 ) / 2);
-		// 初始化选中
-		this.initSelect(this.option.defaultSelect ? this.option.defaultSelect : []);
+		// 初始化选中UI & 相关数据
+		this.initSelect(this.currentItem ? this.currentItem : []);
 	},
 	
 	initSelect: function(result) {
@@ -203,36 +219,43 @@ mSelecter.prototype = {
 				result[index] = 0;
 			}
 			
+			// 高亮
 			this.scrollList.eq(index).find(`li:nth-child(${result[index] + 1})`).addClass('active');
+			// 滚动到选中位置
 			this.setTranslateY(-result[index] * this.itemHeight, this.scrollList.eq(index));
+			// 存储当前滚动列的滚动高度，方便后面滚动计算
 			this.currentTranslateY.push(-result[index] * this.itemHeight);
 		});
+		// 存储当前选中项，方便后面计算
 		this.currentItem = result;
 	},
 	
 	initEvents: function() {
+		// 去掉初始化事件，重新绑定
 		this.el.off("click");
 		this.el.on("click", () => {
 			this.wrap.show();
 		});
 		
-		this.wrap.find('.mSelecterContent').on("touchstart", ".mSelecterItemList", (event) => {
+		
+		this.wrap.find('.mSelecterList').on("touchstart", ".mSelecterItemList", (event) => {
 			var index = event.currentTarget.dataset.index;
 		    this.pointY = event.touches[0].pageY;
 		    this.currentScrollList = this.wrap.find('.mSelecterItemList').eq(index);
 		    this.currentScrollListIndex = index;
+		    this.beforeScrollCurrentItemIndex = this.currentItem[this.currentScrollListIndex];
 		    
 		    this.option.transition && this.initTransition();
 			return false;
 		});
 		
-		this.wrap.find('.mSelecterContent').on("touchmove", ".mSelecterItemList", (event) => {
+		this.wrap.find('.mSelecterList').on("touchmove", ".mSelecterItemList", (event) => {
 			var translateY = this.getTranslateY(event.touches[0].pageY);
 			this.touchFeedback(translateY, "touchmove");
 			return false;
 		});
 		
-		this.wrap.find('.mSelecterContent').on("touchend", ".mSelecterItemList", (event) => {
+		this.wrap.find('.mSelecterList').on("touchend", ".mSelecterItemList", (event) => {
 			this.touchFeedback(this.fixedTranslateY(), "touchend");
 			return false;
 		});
@@ -261,6 +284,7 @@ mSelecter.prototype = {
 			tempCurrentTranslateY = this.currentTranslateY[this.currentScrollListIndex] || 0, // 该列本身的translateY
 			translateY = tempCurrentTranslateY - distance, // 累计本身的位移，计算 （向上是-， 向下是+）
 			height = this.itemHeight * (this.currentScrollList.find('.mSelecterItem').length - 1); // 最多可以移动的位移
+
 		// 边界判断
 		if(translateY > 0) {
 			translateY = 0;
@@ -293,16 +317,17 @@ mSelecter.prototype = {
 		this.setTranslateY(translateY);
 		// 设置当前滚动列表被选中的项的index
 		this.currentItem[this.currentScrollListIndex] = parseInt(Math.round(-this.currentTranslateY[this.currentScrollListIndex] / this.itemHeight));
-		// 结束时要重置其后的选项
-		if (eventType === 'touchend') {
+		// 结束时 && 当前滚动列的值改变了，要重置其后的选项
+		if (eventType === 'touchend' && this.currentItem[this.currentScrollListIndex] != this.beforeScrollCurrentItemIndex) {
 			this.updateCurrentItem(this.currentScrollListIndex);
-			this.updateLayer();
-			this.updateUi();
+			this.updateLayer(this.currentScrollListIndex);
+			this.updateTouchEndUi(this.currentScrollListIndex);
+		} else {
+			this.updateTouchMoveUi();
 		}
-		this.updateUi2();
 	},
 	
-	// 更新选中
+	// 更新选中数组
 	updateCurrentItem: function(index) {
 		var currentItem = this.currentItem,
 			index = parseInt(index),
@@ -321,21 +346,30 @@ mSelecter.prototype = {
 		}
 	},
 	// 更新当前列的active
-	updateUi: function() {
-		this.wrap.find('.mSelectShowBox').css('top', this.itemHeight * (this.option.showItem - 1 ) / 2);
-		this.wrap.find('.mSelecterItem').removeClass('active');
-		this.wrap.find('.mSelecterItemList').css({
-			'padding': this.itemHeight * Math.floor(this.option.showItem / 2) + "px 0",
-		});
-		this.currentItem.forEach((item, index) => {
-			this.wrap.find('.mSelecterItemList').eq(index).find('.mSelecterItem').eq(item).addClass('active');
-			this.wrap.find('.mSelecterItemList').eq(index).css({
-				'transform': 'translateY(' + -(this.itemHeight * item) + 'px)',
-			})
-		});
+	updateTouchEndUi: function() {
+		var mSelecterItemList = this.wrap.find('.mSelecterItemList'),
+			currentItemList = null;
+			
+		for (var i = 0, length = mSelecterItemList.length; i < length; i++) {
+			currentItemList = mSelecterItemList.eq(i);
+			// 加上active
+			currentItemList.find('.mSelecterItem').eq(this.currentItem[i]).addClass('active');
+			// 加上位移
+			currentItemList.css({
+				'padding': this.itemHeight * Math.floor(this.option.showItem / 2) + "px 0",
+				'transform': 'translateY(' + -(this.itemHeight * this.currentItem[i]) + 'px)',
+			});
+		}
+		
+		setTimeout(() => {
+			mSelecterItemList.css({
+				'width': (100 / length).toFixed(2) + "%"
+			});
+		}, 0);
+		
 	},
 	
-	updateUi2: function() {
+	updateTouchMoveUi: function() {
 		this.currentScrollList.find('.mSelecterItem').removeClass('active');
 		this.currentScrollList.find('.mSelecterItem').eq(this.currentItem[this.currentScrollListIndex]).addClass('active');
 	},
@@ -374,12 +408,10 @@ mSelecter.prototype = {
 				"transition": "initial"
 			});
 			
-			!this.currentScrollList.bindTouchEnd && 
-			this.currentScrollList.on("touchend", () => {
-				this.currentScrollList.css({
+			this.wrap.find('.mSelecterList').on("touchend", ".mSelecterItemList", function() {
+				$(this).css({
 					"transition": "all .3s"
 				});
-				this.currentScrollList.bindTouchEnd = true;
 			});
 	    }
 	},
@@ -387,4 +419,5 @@ mSelecter.prototype = {
 
 
 // 后期优化
-// 改成原生？ todo or not to do is a question
+// 兼容不联调
+// 改成类 es6
