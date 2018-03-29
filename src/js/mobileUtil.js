@@ -39,18 +39,27 @@ window.mobileUtil = (function(win, doc) {
                     var rem = width / 10;
                     docEl.style.fontSize = rem + 'px';
                 };
-                win.addEventListener('resize', function() {
-                    clearTimeout(tid);
-                    tid = setTimeout(refreshRem, 300);
-                }, false);
-                win.addEventListener('pageshow', function(e) {
-                    if (e.persisted) {
+                win.addEventListener(
+                    'resize',
+                    function() {
                         clearTimeout(tid);
                         tid = setTimeout(refreshRem, 300);
-                    }
-                }, false);
+                    },
+                    false
+                );
+                win.addEventListener(
+                    'pageshow',
+                    function(e) {
+                        if (e.persisted) {
+                            clearTimeout(tid);
+                            tid = setTimeout(refreshRem, 300);
+                        }
+                    },
+                    false
+                );
                 refreshRem();
-            } else if (isMobile && !matchScale && (matchWidth && matchWidth[1] != 'device-width')) { // 定宽
+            } else if (isMobile && !matchScale && (matchWidth && matchWidth[1] != 'device-width')) {
+                // 定宽
                 var width = parseInt(matchWidth[1]),
                     iw = win.innerWidth || width,
                     ow = win.outerWidth || iw,
@@ -72,18 +81,40 @@ window.mobileUtil = (function(win, doc) {
                 if (config && config.usingPercentage) {
                     scale = 1;
                 }
-                return 'initial-scale=' + scale + ',maximum-scale=' + scale + ',minimum-scale=' + scale + ',user-scalable=no';
+                return (
+                    'initial-scale=' +
+                    scale +
+                    ',maximum-scale=' +
+                    scale +
+                    ',minimum-scale=' +
+                    scale +
+                    ',user-scalable=no'
+                );
             }
             return dpr;
         },
         getSearch: function(href) {
             href = href || win.location.search;
             var data = {},
-                reg = new RegExp("([^?=&]+)(=([^&]*))?", "g");
-            href && href.replace(reg, function($0, $1, $2, $3) {
-                data[$1] = $3;
-            });
+                reg = new RegExp('([^?=&]+)(=([^&]*))?', 'g');
+            href &&
+                href.replace(reg, function($0, $1, $2, $3) {
+                    data[$1] = $3;
+                });
             return data;
         }
     };
 })(window, document);
+
+mobileUtil.fixScreen();
+var $html = document.querySelector('html'),
+    htmlSize = $html.getAttribute('style');
+var $viewport = document.querySelector('meta[name=viewport]'),
+    viewport = $viewport.getAttribute('content');
+var dpr = $html.dataset.dpr,
+    htmlFontSize = $html.style.fontSize.split('px')[0];
+$viewport.setAttribute(
+    'content',
+    'initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no'
+);
+$html.setAttribute('style', 'font-size: ' + htmlFontSize / dpr + 'px;');
