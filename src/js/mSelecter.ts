@@ -4,51 +4,42 @@ import * as $ from 'jquery';
 import '../css/mSelecter.less';
 
 export default class mSelecter {
-    pointY: any;
-    currentTranslateY: any;
-    currentItem: any;
+    pointY: number = 0;
+    // 每个scrollList的当前translateY
+    currentTranslateY: number[] = [];
+    // 每个scrollList中，当前被选中的item
+    currentItem: number[] = [];
+    // 当前滚动的列表
     currentScrollList: any;
-    currentScrollListIndex: any;
-    beforeScrollCurrentItemIndex: any;
+    // 当前滚动列表的Index
+    currentScrollListIndex: number;
+    // 当前滚动列表移动前选中项的Index
+    beforeScrollCurrentItemIndex: number;
+
+    // 滚动列表们
     scrollList: any;
-    scrollListHtml: any;
+    // 滚动列表对应的Html（缓存起来）
+    scrollListHtml: string[] = [];
     confirm: any;
     close: any;
+    // 包含整个插件的元素
     wrap: any;
+    // 触发显示选择器的元素
     el: any;
+
     option: any;
     defaultOption: any;
-    itemHeight: any;
-    resizedFinished: any;
+
+    // 每个item的高度
+    itemHeight: number;
+    // resize定时器
+    resizedFinished: number;
     static count: number = 0;
 
     constructor(option: any) {
         if (!option.el || typeof option.el !== 'string') {
             throw 'el must be string';
         }
-
-        this.pointY = 0;
-        // 每个scrollList的当前translateY
-        this.currentTranslateY = [];
-        // 每个scrollList中，当前被选中的item
-        this.currentItem = [];
-        // 当前滚动的列表
-        this.currentScrollList = null;
-        // 当前滚动列表的Index
-        this.currentScrollListIndex = null;
-        // 当前滚动列表移动前选中项的Index
-        this.beforeScrollCurrentItemIndex = null;
-
-        // 滚动列表们
-        this.scrollList = null;
-        // 滚动列表对应的Html（缓存起来）
-        this.scrollListHtml = [];
-        this.confirm = null;
-        this.close = null;
-        // 包含整个插件的元素
-        this.wrap = null;
-        // 触发显示选择器的元素
-        this.el = null;
 
         this.option = option;
         this.defaultOption = {
@@ -60,15 +51,10 @@ export default class mSelecter {
             relation: false
         }; // 是否显示动画效果 // 确定之后的回调 // 是否联动
 
-        // 每个item的高度
-        this.itemHeight = null;
-        // resize定时器
-        this.resizedFinished = true;
-
         this.init();
     }
 
-    init() {
+    init(): void {
         this.initOption();
         this.initLayer();
         this.wrap = $('#mSelecter-' + mSelecter.count++);
@@ -81,19 +67,19 @@ export default class mSelecter {
         this.registerMSelecter();
     }
 
-    initOption() {
+    initOption(): void {
         this.option = (<any>Object).assign(this.defaultOption, this.option || {});
         // 处理传进来的默认选项, 设置当前选项
         this.currentItem = this.getSelected();
     }
 
     // 处理传进来的默认选项
-    getSelected() {
+    getSelected(): number[] {
         return this.option.relation ? this.getRelationSelected() : this.getNotRelationSelected();
     }
 
-    getRelationSelected() {
-        var selected = this.option.defaultSelect,
+    getRelationSelected(): number[] {
+        let selected: number[] = this.option.defaultSelect,
             lastChild: any = null;
 
         // 第一级的处理特殊一点
@@ -106,7 +92,7 @@ export default class mSelecter {
 
         // 先遍历selected， 如果selected选中的符合数据，则用selected
         // 否则， 删掉第一个不符合之后的所有默认选中
-        for (var i = 1, length = selected.length; i < length; i++) {
+        for (let i = 1, length = selected.length; i < length; i++) {
             if (
                 typeof lastChild!.child != 'undefined' &&
                 typeof lastChild!.child[selected[i]] !== 'undefined'
@@ -126,11 +112,11 @@ export default class mSelecter {
         return selected;
     }
 
-    getNotRelationSelected() {
-        var selected = this.option.defaultSelect,
-            data = this.option.data;
-        for (var i = 0, length = data.length; i < length; i++) {
-            var item = data[i];
+    getNotRelationSelected(): number[] {
+        let selected: number[] = this.option.defaultSelect,
+            data: any = this.option.data;
+        for (let i = 0, length = data.length; i < length; i++) {
+            let item: any = data[i];
             if (typeof item[selected[i]] == 'undefined') {
                 selected[i] = 0;
             }
@@ -139,15 +125,15 @@ export default class mSelecter {
         return selected;
     }
 
-    initLayer() {
+    initLayer(): void {
         // 获取scrollList
-        var listHtml = '';
+        let listHtml: string = '';
 
         this.updateScrollListHtml();
         listHtml = this.scrollListHtml.join('');
 
         // 整个选择器盒子
-        var html = `<div class="mSelecter" id="mSelecter-${mSelecter.count}">
+        let html: string = `<div class="mSelecter" id="mSelecter-${mSelecter.count}">
 						<div class="mSelecterMask"></div>
 						<div class="mSelecterBox">
 							<div class="mSelecterHeader">
@@ -164,13 +150,13 @@ export default class mSelecter {
 					</div>`;
 
         // 插入到页面
-        var el = $(html);
+        let el: any = $(html);
         $('body').append(el);
     }
 
-    updateLayer(fromIndex: any) {
-        var listHtml = '',
-            originScrollListHtml = this.scrollListHtml.join('');
+    updateLayer(fromIndex: number): void {
+        let listHtml: string = '',
+            originScrollListHtml: string = this.scrollListHtml.join('');
 
         this.updateScrollListHtml(fromIndex);
         listHtml = this.scrollListHtml.join('');
@@ -181,15 +167,14 @@ export default class mSelecter {
     }
 
     // 更新scrollList的html
-    updateScrollListHtml(fromIndex?: any) {
-        var from = typeof fromIndex == 'undefined' ? 0 : parseInt(fromIndex) + 1,
+    updateScrollListHtml(fromIndex?: number): void {
+        let from: number = typeof fromIndex == 'undefined' ? 0 : fromIndex + 1,
             // 初始化页面上显示的数据 (整理成二维数组， 每一列的数据是一个数组项)
-            initData = this.option.relation ? this.getInitData() : this.option.data,
-            listHtml = '';
-
+            initData: any = this.option.relation ? this.getInitData() : this.option.data,
+            listHtml: string = '';
         this.scrollListHtml.length = from;
-        for (var i = from, length = initData.length; i < length; i++) {
-            var item = initData[i];
+        for (let i: number = from, length: number = initData.length; i < length; i++) {
+            let item = initData[i];
             listHtml = `<ul class="mSelecterItemList" data-index="${i}">`;
             item.forEach((item: any) => {
                 listHtml += `<li class="mSelecterItem">${item.value}</li>`;
@@ -201,11 +186,11 @@ export default class mSelecter {
     }
 
     // 根据选中项提取每一列的数据，整理成二维数组
-    getInitData() {
-        var result: Object[][] = [],
+    getInitData(): Object[][] {
+        let result: Object[][] = [],
             tempResult: Object[] = [],
-            data = this.option.data,
-            selected = this.currentItem || [];
+            data: any = this.option.data,
+            selected: number[] = this.currentItem || [];
 
         for (var i = 0, length = selected.length; i < length; i++) {
             tempResult = [];
@@ -232,7 +217,7 @@ export default class mSelecter {
         return result;
     }
 
-    registerMSelecter() {
+    registerMSelecter(): void {
         this.wrap.hide();
         this.el.on('click', () => {
             this.wrap.show();
@@ -241,8 +226,8 @@ export default class mSelecter {
         });
     }
 
-    initUi() {
-        var showItem = this.option.showItem;
+    initUi(): void {
+        let showItem: number = this.option.showItem;
 
         // 获取每个item的高度
         this.itemHeight = this.wrap.find('.mSelecterItem').height();
@@ -259,8 +244,8 @@ export default class mSelecter {
         this.initSelect(this.currentItem ? this.currentItem : []);
     }
 
-    initSelect(result: any) {
-        this.scrollList.each((index: any, item: any) => {
+    initSelect(result: number[]): void {
+        this.scrollList.each((index: number, item: any) => {
             if (result[index] == null) {
                 result[index] = 0;
             }
@@ -278,7 +263,7 @@ export default class mSelecter {
         this.currentItem = result;
     }
 
-    initEvents() {
+    initEvents(): void {
         // 去掉初始化事件，重新绑定
         this.el.off('click');
         this.el.on('click', () => {
@@ -286,7 +271,7 @@ export default class mSelecter {
         });
 
         this.wrap.find('.mSelecterList').on('touchstart', '.mSelecterItemList', (event: any) => {
-            var index = event.currentTarget.dataset.index;
+            const index: number = parseInt(event.currentTarget.dataset.index);
             this.pointY = event.touches[0].pageY;
             this.currentScrollList = this.wrap.find('.mSelecterItemList').eq(index);
             this.currentScrollListIndex = index;
@@ -326,11 +311,13 @@ export default class mSelecter {
     }
 
     // 获取每次触摸的位移
-    getTranslateY(currentPointY: any) {
-        var distance = this.pointY - currentPointY, // 当次触碰的位移, >0 向上  <0 向下
-            tempCurrentTranslateY = this.currentTranslateY[this.currentScrollListIndex] || 0, // 该列本身的translateY
-            translateY = tempCurrentTranslateY - distance, // 累计本身的位移，计算 （向上是-， 向下是+）
-            height = this.itemHeight * (this.currentScrollList.find('.mSelecterItem').length - 1); // 最多可以移动的位移
+    getTranslateY(currentPointY: number): number {
+        let distance: number = this.pointY - currentPointY, // 当次触碰的位移, >0 向上  <0 向下
+            tempCurrentTranslateY: number =
+                this.currentTranslateY[this.currentScrollListIndex] || 0, // 该列本身的translateY
+            translateY: number = tempCurrentTranslateY - distance, // 累计本身的位移，计算 （向上是-， 向下是+）
+            height: number =
+                this.itemHeight * (this.currentScrollList.find('.mSelecterItem').length - 1); // 最多可以移动的位移
 
         // 边界判断
         if (translateY > 0) {
@@ -345,14 +332,14 @@ export default class mSelecter {
     }
 
     // 触摸结束后，校准位移， 把偏差归位
-    fixedTranslateY() {
-        var count = Math.round(
+    fixedTranslateY(): number {
+        let count = Math.round(
             this.currentTranslateY[this.currentScrollListIndex] / this.itemHeight
         );
         return count * this.itemHeight;
     }
 
-    setTranslateY(translateY: any, el?: any) {
+    setTranslateY(translateY: number, el?: any): void {
         if (typeof el == 'undefined') {
             el = this.currentScrollList;
         }
@@ -360,7 +347,7 @@ export default class mSelecter {
     }
 
     // 设置translateY, 更新当前选中item, 及Ui
-    touchFeedback(translateY: any, eventType: any) {
+    touchFeedback(translateY: number, eventType: string): void {
         this.setTranslateY(translateY);
         // 设置当前滚动列表被选中的项的index
         this.currentItem[this.currentScrollListIndex] = Math.round(
@@ -381,9 +368,9 @@ export default class mSelecter {
     }
 
     // 更新选中数组
-    updateCurrentItem(index: number) {
-        var currentItem = this.currentItem,
-            lastChild = this.option.data[currentItem[0]];
+    updateCurrentItem(index: number): void {
+        let currentItem: number[] = this.currentItem,
+            lastChild: any = this.option.data[currentItem[0]];
 
         // 获取当前最后一列值
         currentItem.length = parseInt(index + '') + 1;
@@ -398,11 +385,11 @@ export default class mSelecter {
         }
     }
     // 更新当前列的active
-    updateTouchEndUi() {
-        var mSelecterItemList = this.wrap.find('.mSelecterItemList'),
+    updateTouchEndUi(): void {
+        let mSelecterItemList: any = this.wrap.find('.mSelecterItemList'),
             currentItemList: any = null;
 
-        for (var i = 0, length = mSelecterItemList.length; i < length; i++) {
+        for (let i: number = 0, length: number = mSelecterItemList.length; i < length; i++) {
             currentItemList = mSelecterItemList.eq(i);
             // 加上active
             currentItemList
@@ -423,7 +410,7 @@ export default class mSelecter {
         }, 0);
     }
 
-    updateTouchMoveUi() {
+    updateTouchMoveUi(): void {
         this.currentScrollList.find('.mSelecterItem').removeClass('active');
         this.currentScrollList
             .find('.mSelecterItem')
@@ -432,18 +419,18 @@ export default class mSelecter {
     }
 
     // 给回调函数传参
-    getResult() {
+    getResult(): any[] {
         return this.option.relation ? this.getRelationResult() : this.getNotRelationResult();
     }
 
-    getRelationResult() {
-        var result: any[] = [],
-            currentItem = this.currentItem,
+    getRelationResult(): any[] {
+        let result: any[] = [],
+            currentItem: number[] = this.currentItem,
             lastChild: any = this.option.data[currentItem[0]];
         result.push(lastChild);
 
         // 获取当前最后一列值
-        for (var i = 1; i < currentItem.length; i++) {
+        for (let i: number = 0; i < currentItem.length; i++) {
             lastChild = lastChild.child[currentItem[i]];
             result.push(lastChild);
         }
@@ -451,20 +438,20 @@ export default class mSelecter {
         return result;
     }
 
-    getNotRelationResult() {
-        var result: any[] = [],
-            currentItem = this.currentItem;
+    getNotRelationResult(): any[] {
+        let result: any[] = [],
+            currentItem: number[] = this.currentItem;
 
-        for (var i = 0; i < currentItem.length; i++) {
+        for (let i: number = 0; i < currentItem.length; i++) {
             result.push(this.option.data[i][currentItem[i]]);
         }
         return result;
     }
 
     // 获取数组中，属性值等于给定值的下标
-    getArrayAttrIndex(obj: any) {
-        var { attr, value, array } = obj;
-        for (var i = 0, length = array.length; i < length; i++) {
+    getArrayAttrIndex(obj: { attr: string; value: any; array: any[] }): number {
+        let { attr, value, array } = obj;
+        for (let i: number = 0, length: number = array.length; i < length; i++) {
             if (array[i][attr] === value) {
                 return i;
             }
@@ -473,7 +460,7 @@ export default class mSelecter {
     }
 
     // touchstart时 初始化当前滚动列的transition
-    initTransition() {
+    initTransition(): void {
         if (this.option.transition) {
             this.currentScrollList.css({ transition: 'initial' });
 
